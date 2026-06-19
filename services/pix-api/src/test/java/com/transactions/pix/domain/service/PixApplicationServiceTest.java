@@ -1,6 +1,7 @@
 package com.transactions.pix.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -84,6 +85,63 @@ class PixApplicationServiceTest {
         assertThat(result).isEqualTo(existing);
         verify(idempotencyCachePort).cacheStatus(eq("tx-3"), eq(PixTransactionStatus.PROCESSING), any());
         verify(telemetryPort, never()).increment("pix.transactions.created");
+    }
+
+    @Test
+    void shouldUseIdempotencyAndStatusCaches() {
+        // arrange
+        PixTransaction cached = transaction("tx-cache");
+        when(idempotencyCachePort.findStatus("tx-cache"))
+                .thenReturn(Optional.of(PixTransactionStatus.PROCESSING));
+        when(statusCachePort.findByTransactionId("tx-cache")).thenReturn(Optional.of(cached));
+
+        // act
+        PixTransaction result = service().create(command("tx-cache"));
+
+        // assert
+        assertThat(result).isEqualTo(cached);
+        verify(transactionPort, never()).findByTransactionId("tx-cache");
+    }
+
+    @Test
+    void shouldLoadRepositoryTransactionAndPopulateStatusCache() {
+        // arrange
+        PixTransaction persisted = transaction("tx-persisted");
+        when(statusCachePort.findByTransactionId("tx-persisted")).thenReturn(Optional.empty());
+        when(transactionPort.findByTransactionId("tx-persisted")).thenReturn(Optional.of(persisted));
+
+        // act
+        PixTransaction result = service().findByTransactionId("tx-persisted");
+
+        // assert
+        assertThat(result).isEqualTo(persisted);
+        verify(statusCachePort).cache(eq(persisted), any());
+    }
+
+    @Test
+    void shouldThrowNotFoundWhenTransactionDoesNotExist() {
+        // arrange
+        when(statusCachePort.findByTransactionId("tx-missing")).thenReturn(Optional.empty());
+        when(transactionPort.findByTransactionId("tx-missing")).thenReturn(Optional.empty());
+
+        // act + assert
+        assertThatThrownBy(() -> service().findByTransactionId("tx-missing"))
+                .isInstanceOf(com.transactions.pix.adapter.in.web.ResourceNotFoundException.class)
+                .hasMessage("PIX transaction not found: tx-missing");
+    }
+
+    @Test
+    void shouldRethrowConcurrentInsertFailureWhenWinnerCannotBeLoaded() {
+        // arrange
+        DataIntegrityViolationException duplicate =
+                new DataIntegrityViolationException("duplicate transactionId");
+        when(transactionPort.findByTransactionId("tx-race"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.empty());
+        when(creationTransactionService.create(any())).thenThrow(duplicate);
+
+        // act + assert
+        assertThatThrownBy(() -> service().create(command("tx-race"))).isSameAs(duplicate);
     }
 
     private PixApplicationService service() {

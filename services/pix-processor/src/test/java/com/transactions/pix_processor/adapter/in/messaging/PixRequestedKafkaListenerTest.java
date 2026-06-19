@@ -3,6 +3,7 @@ package com.transactions.pix_processor.adapter.in.messaging;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import com.transactions.pix_processor.domain.port.in.ProcessPixResult;
@@ -52,5 +53,22 @@ class PixRequestedKafkaListenerTest {
                 any(Duration.class),
                 eq("completed")
         );
+    }
+
+    @Test
+    void shouldAcknowledgeWithoutMetricsWhenProcessingIsIgnored() {
+        // arrange
+        when(processPixUseCase.process("duplicate")).thenReturn(Optional.empty());
+        PixRequestedKafkaListener listener = new PixRequestedKafkaListener(processPixUseCase, telemetryPort);
+
+        // act
+        listener.consume(
+                new ConsumerRecord<>("pix.requested", 0, 1, "tx-2", "duplicate"),
+                acknowledgment
+        );
+
+        // assert
+        verify(acknowledgment).acknowledge();
+        verify(telemetryPort, never()).recordDuration(any(), any(), any());
     }
 }

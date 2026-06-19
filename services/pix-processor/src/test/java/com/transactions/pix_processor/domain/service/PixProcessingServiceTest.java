@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transactions.pix_processor.domain.port.out.DlqPublisherPort;
@@ -133,6 +135,39 @@ class PixProcessingServiceTest {
         verify(transactionPort, never()).markRetrying(any(), any(), any());
         verify(transactionPort, never()).markFailed(any(), any(), any());
         verify(attemptPort, never()).insert(any(), any(Integer.class), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectInvalidPayload() {
+        // arrange
+        String invalidPayload = "{invalid";
+
+        // act
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service(3).process(invalidPayload)
+        );
+
+        // assert
+        assertEquals("Invalid PixRequested payload", error.getMessage());
+    }
+
+    @Test
+    void shouldFailWhenTransactionDoesNotExistAndAcceptMissingCorrelationId() throws Exception {
+        // arrange
+        PixRequestedEvent event = new PixRequestedEvent(
+                "tx-missing", BigDecimal.TEN, "key", "invoice", Instant.now(), null
+        );
+        when(transactionPort.findByTransactionId("tx-missing")).thenReturn(Optional.empty());
+
+        // act
+        IllegalStateException error = assertThrows(
+                IllegalStateException.class,
+                () -> service(3).process(payload(event))
+        );
+
+        // assert
+        assertEquals("Transaction not found: tx-missing", error.getMessage());
     }
 
     private PixProcessingService service(int maxAttempts) {

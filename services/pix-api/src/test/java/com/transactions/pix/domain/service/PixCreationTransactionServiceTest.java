@@ -1,12 +1,14 @@
 package com.transactions.pix.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.transactions.pix.domain.model.PixTransaction;
 import com.transactions.pix.domain.model.PixTransactionStatus;
 import com.transactions.pix.domain.port.in.CreatePixCommand;
@@ -42,6 +44,23 @@ class PixCreationTransactionServiceTest {
         assertThat(result).isEqualTo(saved);
         verify(transactionPort).insert(any());
         verify(outboxEventPort).append(eq("tx-atomic"), eq("PixRequested"), any(), eq(saved.createdAt()));
+    }
+
+    @Test
+    void shouldWrapPayloadSerializationFailure() throws Exception {
+        // arrange
+        PixTransaction saved = transaction("tx-broken");
+        ObjectMapper objectMapper = org.mockito.Mockito.mock(ObjectMapper.class);
+        when(transactionPort.insert(any())).thenReturn(saved);
+        when(objectMapper.writeValueAsString(any()))
+                .thenThrow(new JsonProcessingException("serialization failed") { });
+        PixCreationTransactionService service =
+                new PixCreationTransactionService(transactionPort, outboxEventPort, objectMapper);
+
+        // act + assert
+        assertThatThrownBy(() -> service.create(command("tx-broken")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Could not serialize PixRequested event");
     }
 
     private CreatePixCommand command(String transactionId) {
