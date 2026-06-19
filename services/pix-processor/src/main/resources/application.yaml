@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: pix-processor
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pixdb}
+    username: ${SPRING_DATASOURCE_USERNAME:pix}
+    password: ${SPRING_DATASOURCE_PASSWORD:pix}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pix
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    consumer:
+      group-id: ${PIX_PROCESSOR_GROUP_ID:pix-processor}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: ${PIX_PROCESSOR_MAX_POLL_RECORDS:10}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate
+      concurrency: ${PIX_PROCESSOR_CONCURRENCY:3}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+partner:
+  pix:
+    base-url: ${PARTNER_PIX_BASE_URL:http://localhost:8089}
+    connect-timeout-ms: ${PARTNER_PIX_CONNECT_TIMEOUT_MS:1000}
+    read-timeout-ms: ${PARTNER_PIX_READ_TIMEOUT_MS:3000}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      partnerPix:
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 5
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+pix:
+  processor:
+    group-id: ${PIX_PROCESSOR_GROUP_ID:pix-processor}
+    max-processing-attempts: ${PIX_PROCESSOR_MAX_PROCESSING_ATTEMPTS:3}
+    concurrency: ${PIX_PROCESSOR_CONCURRENCY:3}

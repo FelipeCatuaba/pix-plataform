@@ -1,0 +1,308 @@
+name: pix-plataform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pixdb}
+      POSTGRES_USER: ${POSTGRES_USER:-pix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pix}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pix} -d ${POSTGRES_DB:-pixdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pix-network
+
+  flyway:
+    image: flyway/flyway:10.20.1-alpine
+    container_name: pix-flyway
+    command:
+      - -url=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pixdb}
+      - -user=${POSTGRES_USER:-pix}
+      - -password=${POSTGRES_PASSWORD:-pix}
+      - -connectRetries=60
+      - -defaultSchema=public
+      - -locations=filesystem:/flyway/sql
+      - migrate
+    volumes:
+      - ./infra/flyway/sql:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pix-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pix-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pix-network
+
+  kafka:
+    image: apache/kafka:4.1.1
+    container_name: pix-kafka
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9094}:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - pix-network
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    container_name: pix-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash"]
+    command:
+      - -lc
+      - "set -e; /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pix.requested --partitions ${PIX_REQUESTED_PARTITIONS:-3} --replication-factor 1; /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pix.dlq --partitions ${PIX_DLQ_PARTITIONS:-3} --replication-factor 1; /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"
+    networks:
+      - pix-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: pix-kafka-ui
+    restart: unless-stopped
+    environment:
+      KAFKA_CLUSTERS_0_NAME: pix-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "false"
+    ports:
+      - "${KAFKA_UI_PORT:-8085}:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - pix-network
+
+  wiremock:
+    image: wiremock/wiremock:3.9.1
+    container_name: pix-wiremock
+    restart: unless-stopped
+    ports:
+      - "${WIREMOCK_PORT:-8089}:8080"
+    command: ["--global-response-templating", "--verbose"]
+    volumes:
+      - ./infra/wiremock/mappings:/home/wiremock/mappings:ro
+      - ./infra/wiremock/__files:/home/wiremock/__files:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pix-network
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    container_name: pix-datadog-agent
+    restart: unless-stopped
+    environment:
+      DD_API_KEY: ${DD_API_KEY:-dummy_key_for_local_dev}
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_ENV: ${DD_ENV:-local}
+      DD_SERVICE: pix-platform
+      DD_VERSION: ${DD_VERSION:-local}
+      DD_LOGS_ENABLED: ${DD_LOGS_ENABLED:-true}
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "false"
+      DD_APM_ENABLED: ${DD_APM_ENABLED:-true}
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+      HOST_PROC: /proc
+      DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT: 0.0.0.0:4317
+      DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT: 0.0.0.0:4318
+      DD_CONTAINER_EXCLUDE: "name:pix-datadog-agent"
+    ports:
+      - "8126:8126"
+      - "8125:8125/udp"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - pix-network
+
+  otel-agent-downloader:
+    image: curlimages/curl:8.8.0
+    container_name: pix-otel-agent-downloader
+    user: "0:0"
+    command:
+      - -L
+      - -f
+      - -o
+      - /otel/opentelemetry-javaagent.jar
+      - https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_JAVA_AGENT_VERSION:-2.16.0}/opentelemetry-javaagent.jar
+    volumes:
+      - otel_agent:/otel
+    networks:
+      - pix-network
+
+  pix-api:
+    build:
+      context: .
+      dockerfile: services/pix-api/Dockerfile
+    container_name: pix-api
+    restart: unless-stopped
+    labels:
+      com.datadoghq.ad.logs: '[{"source":"java","service":"pix-api"}]'
+    environment:
+      JAVA_TOOL_OPTIONS: -javaagent:/otel/opentelemetry-javaagent.jar
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pixdb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pix}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pix}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      PIX_IDEMPOTENCY_TTL: 24h
+      PIX_STATUS_CACHE_TTL: 30s
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: 8126
+      DD_SERVICE: pix-api
+      DD_ENV: ${DD_ENV:-local}
+      DD_VERSION: ${DD_VERSION:-local}
+      OTEL_SERVICE_NAME: pix-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://datadog-agent:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_INSTRUMENTATION_MICROMETER_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: DELTA
+      OTEL_METRIC_EXPORT_INTERVAL: 10000
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${DD_ENV:-local},service.version=${DD_VERSION:-local}
+    ports:
+      - "${PIX_API_PORT:-8080}:8080"
+    volumes:
+      - otel_agent:/otel:ro
+    depends_on:
+      otel-agent-downloader:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - pix-network
+
+  pix-processor:
+    build:
+      context: .
+      dockerfile: services/pix-processor/Dockerfile
+    container_name: pix-processor
+    restart: unless-stopped
+    labels:
+      com.datadoghq.ad.logs: '[{"source":"java","service":"pix-processor"}]'
+    environment:
+      JAVA_TOOL_OPTIONS: -javaagent:/otel/opentelemetry-javaagent.jar
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pixdb}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pix}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pix}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      PARTNER_PIX_BASE_URL: http://wiremock:8080
+      PARTNER_PIX_CONNECT_TIMEOUT_MS: 1000
+      PARTNER_PIX_READ_TIMEOUT_MS: 3000
+      PIX_PROCESSOR_MAX_PROCESSING_ATTEMPTS: 3
+      PIX_PROCESSOR_CONCURRENCY: 3
+      PIX_PROCESSOR_MAX_POLL_RECORDS: 10
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: 8126
+      DD_SERVICE: pix-processor
+      DD_ENV: ${DD_ENV:-local}
+      DD_VERSION: ${DD_VERSION:-local}
+      OTEL_SERVICE_NAME: pix-processor
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://datadog-agent:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_INSTRUMENTATION_MICROMETER_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: DELTA
+      OTEL_METRIC_EXPORT_INTERVAL: 10000
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${DD_ENV:-local},service.version=${DD_VERSION:-local}
+    volumes:
+      - otel_agent:/otel:ro
+    depends_on:
+      otel-agent-downloader:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+    networks:
+      - pix-network
+
+volumes:
+  postgres_data:
+  kafka_data:
+  redis_data:
+  otel_agent:
+
+networks:
+  pix-network:
+    driver: bridge

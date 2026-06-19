@@ -1,0 +1,19 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/partner/pix"
+  },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 2000,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "partnerReferenceId": "partner-{{randomValue length=12 type='ALPHANUMERIC'}}",
+      "status": "APPROVED"
+    },
+    "transformers": ["response-template"]
+  }
+}

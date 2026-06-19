@@ -1,0 +1,436 @@
+{
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+        {
+          "fails": 0,
+          "name": "health retorna HTTP 200",
+          "path": "::health retorna HTTP 200",
+          "id": "34a0065cfbc392a2ecf86a2963c315dc",
+          "passes": 1
+        },
+        {
+          "name": "health retorna UP",
+          "path": "::health retorna UP",
+          "id": "b7dc0c397466bd01253677069da499e1",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "passes": 1,
+          "fails": 0,
+          "name": "success: POST retorna HTTP 202",
+          "path": "::success: POST retorna HTTP 202",
+          "id": "c08570eeb078267dd2b9cbc6e5f89e8f"
+        },
+        {
+          "name": "success: POST retorna transactionId",
+          "path": "::success: POST retorna transactionId",
+          "id": "275a73d689ce1c2b77e07931acdd10a7",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "passes": 1,
+          "fails": 0,
+          "name": "success: POST retorna status valido",
+          "path": "::success: POST retorna status valido",
+          "id": "507f37bc454d188bfbef2f1e1564c033"
+        },
+        {
+          "id": "797ba5f1d662156aea1770a234ff2f23",
+          "passes": 1,
+          "fails": 0,
+          "name": "success: POST retorna createdAt",
+          "path": "::success: POST retorna createdAt"
+        },
+        {
+          "name": "success: consulta retorna HTTP 200",
+          "path": "::success: consulta retorna HTTP 200",
+          "id": "e088aac95ab1dc852eccdf09126c29d9",
+          "passes": 130,
+          "fails": 0
+        },
+        {
+          "name": "success: consulta preserva transactionId",
+          "path": "::success: consulta preserva transactionId",
+          "id": "a008c6c836a3cefd722a923b951701e1",
+          "passes": 130,
+          "fails": 0
+        },
+        {
+          "fails": 0,
+          "name": "success: status final e COMPLETED",
+          "path": "::success: status final e COMPLETED",
+          "id": "72e45abd5ee5910414b49c886b96dc6b",
+          "passes": 1
+        },
+        {
+          "name": "idempotency: POST retorna HTTP 202",
+          "path": "::idempotency: POST retorna HTTP 202",
+          "id": "9abb6242579b9f264eecc032a097f162",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "idempotency: POST retorna transactionId",
+          "path": "::idempotency: POST retorna transactionId",
+          "id": "b3240c143169efbe4cf03bebfa204193",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "idempotency: POST retorna status valido",
+          "path": "::idempotency: POST retorna status valido",
+          "id": "4bcb355a59870f468ff3858f9a8cd6ad",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "idempotency: POST retorna createdAt",
+          "path": "::idempotency: POST retorna createdAt",
+          "id": "45ef543f7c2d19397997b73835887657",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "idempotency: consulta retorna HTTP 200",
+          "path": "::idempotency: consulta retorna HTTP 200",
+          "id": "cfa1e028990d69e70c74ba73922f3cd5",
+          "passes": 8,
+          "fails": 0
+        },
+        {
+          "name": "idempotency: consulta preserva transactionId",
+          "path": "::idempotency: consulta preserva transactionId",
+          "id": "dacca8d4614e5eb9281697d34e771ca1",
+          "passes": 8,
+          "fails": 0
+        },
+        {
+          "passes": 1,
+          "fails": 0,
+          "name": "idempotency: status final e COMPLETED",
+          "path": "::idempotency: status final e COMPLETED",
+          "id": "cb1b9a78d070d2d1f4ea1757c41453d0"
+        },
+        {
+          "name": "idempotencia retorna HTTP 202",
+          "path": "::idempotencia retorna HTTP 202",
+          "id": "2a5c5e9532d9dfd30fcef349ca1457ee",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "idempotencia preserva transactionId",
+          "path": "::idempotencia preserva transactionId",
+          "id": "b586b01dc54c645b8e68ad1e91f1a3bb",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "fails": 0,
+          "name": "idempotencia preserva status final",
+          "path": "::idempotencia preserva status final",
+          "id": "f7c5fd4e7abe3312b6c14dcc032649b8",
+          "passes": 1
+        },
+        {
+          "name": "idempotencia preserva createdAt",
+          "path": "::idempotencia preserva createdAt",
+          "id": "5320a0ad00332900582033a415cb590e",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "name": "requisicao invalida retorna HTTP 400",
+          "path": "::requisicao invalida retorna HTTP 400",
+          "id": "5fe5d5261f3afe09e443f4aaf2c48ce3",
+          "passes": 1,
+          "fails": 0
+        },
+        {
+          "fails": 0,
+          "name": "requisicao invalida retorna INVALID_REQUEST",
+          "path": "::requisicao invalida retorna INVALID_REQUEST",
+          "id": "2109758ad62b607cb11f10014bbfe1fb",
+          "passes": 1
+        },
+        {
+          "id": "8f6f76527515e6f5a6305f8c7a1461e5",
+          "passes": 1,
+          "fails": 0,
+          "name": "consulta inexistente retorna HTTP 404",
+          "path": "::consulta inexistente retorna HTTP 404"
+        },
+        {
+          "name": "consulta inexistente retorna PIX_NOT_FOUND",
+          "path": "::consulta inexistente retorna PIX_NOT_FOUND",
+          "id": "336523a5bc4a2bdbe603aeef05412b6f",
+          "passes": 1,
+          "fails": 0
+        }
+      ]
+  },
+  "options": {
+    "noColor": false,
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)"
+    ],
+    "summaryTimeUnit": ""
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 36219.280003
+  },
+  "metrics": {
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 36221.221137,
+        "min": 36221.221137,
+        "med": 36221.221137,
+        "max": 36221.221137,
+        "p(90)": 36221.221137,
+        "p(95)": 36221.221137
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "values": {
+        "med": 11.094077500000001,
+        "max": 25.800016,
+        "p(90)": 13.9290138,
+        "p(95)": 16.786865049999996,
+        "avg": 10.756424527777778,
+        "min": 4.530529
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 15.511740549999999,
+        "avg": 10.194067645833336,
+        "min": 4.229211,
+        "med": 10.517139,
+        "max": 25.648003,
+        "p(90)": 13.152126200000001
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "min": 1,
+        "max": 1,
+        "value": 1
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 13.9290138,
+        "p(95)": 16.786865049999996,
+        "avg": 10.756424527777778,
+        "min": 4.530529,
+        "med": 11.094077500000001,
+        "max": 25.800016
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 48069,
+        "rate": 1327.1660838100177
+      }
+    },
+    "http_req_receiving": {
+      "contains": "time",
+      "values": {
+        "max": 2.507174,
+        "p(90)": 0.9755544000000003,
+        "p(95)": 1.2843938499999994,
+        "avg": 0.49096699999999976,
+        "min": 0.065306,
+        "med": 0.401573
+      },
+      "type": "trend"
+    },
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 1,
+        "max": 1
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 2.60494,
+        "p(90)": 0,
+        "p(95)": 0,
+        "avg": 0.05145945833333333,
+        "min": 0,
+        "med": 0
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.07138988194444444,
+        "min": 0.013521,
+        "med": 0.06947400000000001,
+        "max": 0.259156,
+        "p(90)": 0.10687750000000001,
+        "p(95)": 0.1091488
+      }
+    },
+    "pix_functional_failures": {
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "count": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      },
+      "type": "counter"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 3.975783063276593,
+        "count": 144
+      }
+    },
+    "pix_processing_timeouts": {
+      "contains": "default",
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      },
+      "type": "counter"
+    },
+    "checks": {
+      "thresholds": {
+        "rate==1": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 0,
+        "rate": 1,
+        "passes": 296
+      }
+    },
+    "pix_scenarios_executed": {
+      "contains": "default",
+      "values": {
+        "count": 5,
+        "rate": 0.13804802303043726
+      },
+      "type": "counter"
+    },
+    "pix_end_to_end_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 34063,
+        "p(90)": 34063,
+        "p(95)": 34063,
+        "avg": 34063,
+        "min": 34063,
+        "med": 34063
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1,
+        "rate": 0.027609604606087454
+      }
+    },
+    "pix_create_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 22.70197,
+        "min": 22.70197,
+        "med": 22.70197,
+        "max": 22.70197,
+        "p(90)": 22.70197,
+        "p(95)": 22.70197
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "rate": 470.1639568370632,
+        "count": 17029
+      }
+    },
+    "http_req_blocked": {
+      "contains": "time",
+      "values": {
+        "avg": 0.09491086111111112,
+        "min": 0.003539,
+        "med": 0.010955,
+        "max": 5.920712,
+        "p(90)": 0.017547100000000006,
+        "p(95)": 0.040557549999999915
+      },
+      "type": "trend"
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 144
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0,
+        "avg": 0,
+        "min": 0,
+        "med": 0,
+        "max": 0,
+        "p(90)": 0
+      }
+    }
+  }
+}

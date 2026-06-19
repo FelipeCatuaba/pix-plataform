@@ -1,0 +1,23 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/partner/pix",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.pixKey == 'partner-timeout@pix.test')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 10000,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "partnerReferenceId": "late-response",
+      "status": "APPROVED"
+    }
+  }
+}

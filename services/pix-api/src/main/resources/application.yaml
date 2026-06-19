@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: pix-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pixdb}
+    username: ${SPRING_DATASOURCE_USERNAME:pix}
+    password: ${SPRING_DATASOURCE_PASSWORD:pix}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: pix
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+pix:
+  idempotency:
+    ttl: ${PIX_IDEMPOTENCY_TTL:24h}
+  status-cache:
+    ttl: ${PIX_STATUS_CACHE_TTL:30s}
+  outbox:
+    publisher-delay: ${PIX_OUTBOX_PUBLISHER_DELAY:1000}
